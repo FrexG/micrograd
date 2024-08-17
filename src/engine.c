@@ -11,7 +11,6 @@ Value *initValue(double data)
     fprintf(stderr, "Error: Memory Allocation failed\n");
     return NULL;
   }
-
   value->data = data;
   value->grad = 0.0f;
   value->num_children = 0;
@@ -101,12 +100,11 @@ Value *mul(struct Value *v1, struct Value *v2)
 
 void noopBackward(struct Value *v)
 {
-  printf("Noop backward\n");
+  (void*)v;
 };
 
 void addBackwards(struct Value *v)
 {
-  printf("add_backward() function\n");
   if(v->num_children == 1){
     struct Value *v1 = v->children[0];
     v1->grad += 2*v->grad;
@@ -121,7 +119,6 @@ void addBackwards(struct Value *v)
 
 void mulBackwards(struct Value *v)
 {
-  printf("mul_backward() function\n");
   if(v->num_children == 1){
     struct Value *v1 = v->children[0];
     v1->grad += 2*v1->data * v->grad;
@@ -153,7 +150,6 @@ void appendTopo(struct Value *v, struct Value **topo, size_t *topo_cnt){
 void buildTopo(struct Value *v, struct Value **topo, struct Value **visited, size_t *visited_cnt, size_t *topo_cnt){
   if(v == NULL)
     return;
-  printf("Here\n");
   if(!valueIn(v, visited)){
     if(*visited_cnt < TOPO_SIZE){
       visited[*visited_cnt] = v;
