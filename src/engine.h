@@ -14,11 +14,9 @@ typedef enum
 {
   NONE,
   ADD,
-  SUB,
   MUL,
   DIV,
-  rSUB,
-  rDIV
+  EXP,
 } Op;
 
 typedef struct Value
@@ -34,14 +32,16 @@ typedef struct Value
 
 Value *initValue(double data);
 
-Value *add(struct Value *v1, struct Value *v2);
-Value *scalarAdd(struct Value *v1, double v2);
-Value *mul(struct Value *v1, struct Value *v2);
-Value *scalarMul(struct Value *v1, double v2);
+Value *_add(struct Value *v1, struct Value *v2);
+Value *_scalarAdd(struct Value *v1, double v2);
+Value *_mul(struct Value *v1, struct Value *v2);
+Value *_scalarMul(struct Value *v1, double v2);
+Value *_exp(struct Value *v1);
 
 void noopBackward(struct Value *v);
 void addBackwards(struct Value *v);
 void mulBackwards(struct Value *v);
+void expBackwards(struct Value *v);
 void backward(struct Value *v); 
 
 bool valueIn(struct Value *v, struct Value** array);

@@ -19,7 +19,7 @@ Value *initValue(double data)
   return value;
 }
 
-Value *add(struct Value *v1, struct Value *v2)
+Value *_add(struct Value *v1, struct Value *v2)
 {
   Value *v = initValue(v1->data + v2->data);
   size_t num_child = 2;
@@ -57,7 +57,7 @@ Value *add(struct Value *v1, struct Value *v2)
   return v;
 }
 
-Value *scalarAdd(struct Value *v1, double c)
+Value *_scalarAdd(struct Value *v1, double c)
 {
   Value *v2 = initValue(c);
   Value *v = initValue(v1->data + v2->data);
@@ -81,7 +81,7 @@ Value *scalarAdd(struct Value *v1, double c)
   return v;
 }
 
-Value *mul(struct Value *v1, struct Value *v2)
+Value *_mul(struct Value *v1, struct Value *v2)
 {
   Value *v = initValue(v1->data * v2->data);
   size_t num_child = 2;
@@ -118,7 +118,7 @@ Value *mul(struct Value *v1, struct Value *v2)
   v->backward = mulBackwards;
   return v;
 }
-Value *scalarMul(struct Value *v1, double c)
+Value *_scalarMul(struct Value *v1, double c)
 {
   Value *v2 = initValue(c);
   Value *v = initValue(v1->data * v2->data);
@@ -136,12 +136,30 @@ Value *scalarMul(struct Value *v1, double c)
   v->children[0] = v1;
   v->children[1] = v2;
   v->num_children = num_child;
-  v->op = ADD;
+  v->op = MUL;
   v->ref_count = 1;
   v->backward = addBackwards;
   return v;
 }
+Value *_exp(struct Value *v1){
+  Value *v = initValue(exp(v1->data));
+  size_t num_child = 1;
+  v->children = calloc(num_child,sizeof(Value*));
 
+  if (v->children == NULL)
+  {
+    fprintf(stderr, "Error: Memory Allocation failed\n");
+    return NULL;
+  }
+
+  v1->ref_count++;
+  v->children[0] = v1;
+  v->num_children = num_child;
+  v->op = EXP;
+  v->ref_count = 1;
+  v->backward = expBackwards;
+  return v;
+}
 void noopBackward(struct Value *v)
 {
   (void *)v;
@@ -177,6 +195,12 @@ void mulBackwards(struct Value *v)
     v1->grad += v2->data * v->grad;
     v2->grad += v1->data * v->grad;
   }
+}
+
+void expBackwards(struct Value *v)
+{
+  struct Value *v1 = v->children[0];
+  v1->grad += v->data * v->grad;
 }
 
 bool valueIn(struct Value *v, struct Value **list)
