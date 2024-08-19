@@ -12,7 +12,7 @@ int main(void)
   Value *y = initValue(2.0);
   Value *z = initValue(4.0);
 
-  Value *s = scalarMul(add(add(z,mul(add(z, x),y)),mul(y,z)),10);
+  Value *s = _scalarMul(_add(_add(z,_mul(_add(z, x),y)),_exp(_mul(y,z))),10);
 
 
   while(!WindowShouldClose()){

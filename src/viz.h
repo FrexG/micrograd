@@ -51,6 +51,9 @@ void drawNodes(Value *v, Node *n,int x, int y){
   case MUL:
     DrawText("MUL", x + 5, y + 20, 10, WHITE);
     break;
+  case EXP:
+    DrawText("EXP", x + 5, y + 20, 10, WHITE);
+    break;
   default:
     DrawText("NONE", x + 5, y + 20, 10, WHITE);
     break;
