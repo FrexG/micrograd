@@ -5,10 +5,10 @@
 #include <stdlib.h>
 
 #define W 1000
-#define H 1000
+#define H 500
 
-#define NODE_W 100
-#define NODE_H 50
+#define NODE_W 50
+#define NODE_H 20
 
 typedef struct Node{
   int x;
@@ -24,7 +24,7 @@ void drawNodes(Value *v, Node *n,int x, int y){
 
   n->x = x;
   n->y = y;
-  n->data = n->data;
+  n->data = v->data;
   if (v->children != NULL)
   {
     n->num_children = v->num_children;
