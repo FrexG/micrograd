@@ -9,7 +9,7 @@
 
 #define TOPO_SIZE 1000
 #define PRINT_V(v) printValue(v, #v)
-// define a value objet
+
 typedef enum
 {
   NONE,
@@ -18,7 +18,7 @@ typedef enum
   MUL,
   DIV,
   rSUB,
-  rDIB
+  rDIV
 } Op;
 
 typedef struct Value
@@ -35,7 +35,9 @@ typedef struct Value
 Value *initValue(double data);
 
 Value *add(struct Value *v1, struct Value *v2);
+Value *scalarAdd(struct Value *v1, double v2);
 Value *mul(struct Value *v1, struct Value *v2);
+Value *scalarMul(struct Value *v1, double v2);
 
 void noopBackward(struct Value *v);
 void addBackwards(struct Value *v);
