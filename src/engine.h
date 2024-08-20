@@ -14,6 +14,7 @@ typedef enum
 {
   NONE,
   ADD,
+  SUB,
   MUL,
   DIV,
   EXP,
@@ -33,7 +34,9 @@ typedef struct Value
 Value *initValue(double data);
 
 Value *_add(struct Value *v1, struct Value *v2);
+Value *_sub(struct Value *v1, struct Value *v2);
 Value *_scalarAdd(struct Value *v1, double v2);
+Value *_scalarSub(struct Value *v1, double v2);
 Value *_mul(struct Value *v1, struct Value *v2);
 Value *_scalarMul(struct Value *v1, double v2);
 Value *_exp(struct Value *v1);

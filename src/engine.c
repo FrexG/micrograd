@@ -56,6 +56,10 @@ Value *_add(struct Value *v1, struct Value *v2)
   v->backward = addBackwards;
   return v;
 }
+Value *_sub(struct Value *v1, struct Value *v2)
+{
+  return _add(v1, _scalarMul(v2,-1));
+}
 
 Value *_scalarAdd(struct Value *v1, double c)
 {
@@ -138,7 +142,7 @@ Value *_scalarMul(struct Value *v1, double c)
   v->num_children = num_child;
   v->op = MUL;
   v->ref_count = 1;
-  v->backward = addBackwards;
+  v->backward = mulBackwards;
   return v;
 }
 Value *_exp(struct Value *v1){
@@ -252,10 +256,10 @@ void backward(struct Value *v)
   {
     if (topo[i] != NULL)
     {
-      PRINT_V(topo[i]);
       topo[i]->backward(topo[i]);
     }
   }
+  // free buffers
   free(topo);
   free(visited);
 }
