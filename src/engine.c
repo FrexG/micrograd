@@ -12,6 +12,7 @@ Value *initValue(double data)
 
   value->data = data;
   value->grad = 0.0f;
+  value->n = 0.0f;
   value->num_children = 0;
   value->children = NULL;
   value->ref_count = 1;
@@ -84,7 +85,9 @@ Value *_scalarAdd(struct Value *v1, double c)
   v->backward = addBackwards;
   return v;
 }
-
+Value *_scalarSub(struct Value *v1,double c ){
+  return _scalarAdd(v1, c * -1);
+}
 Value *_mul(struct Value *v1, struct Value *v2)
 {
   Value *v = initValue(v1->data * v2->data);
@@ -164,9 +167,41 @@ Value *_exp(struct Value *v1){
   v->backward = expBackwards;
   return v;
 }
+Value *_pow(struct Value *v1, double v2){
+  Value *v = initValue(pow(v1->data,v2));
+  size_t num_child = 1;
+  v->children = calloc(num_child,sizeof(Value*));
+
+  if (v->children == NULL)
+  {
+    fprintf(stderr, "Error: Memory Allocation failed\n");
+    return NULL;
+  }
+
+  v1->ref_count++;
+  v->n = v2;
+  v->children[0] = v1;
+  v->num_children = num_child;
+  v->op = POW;
+  v->ref_count = 1;
+  v->backward = powBackwards;
+  return v;
+}
+
+Value *_div(struct Value *v1, struct Value *v2){
+  // division, can be represented as a multiplication and a power op.
+  return _mul(v1, _pow(v2, -1));
+}
+Value *_sigmoid(struct Value *v1){
+  return _pow(_scalarAdd(_exp(_scalarMul(v1, -1)),1),-1);
+}
+Value *_tanh(struct Value *v1){
+  Value *e2x = _exp(_scalarMul(v1,2));
+  return _div(_scalarSub(e2x, 1), _scalarAdd(e2x,1));
+}
 void noopBackward(struct Value *v)
 {
-  (void *)v;
+  // nothing
 };
 
 void addBackwards(struct Value *v)
@@ -200,7 +235,10 @@ void mulBackwards(struct Value *v)
     v2->grad += v1->data * v->grad;
   }
 }
-
+void powBackwards(struct Value *v){
+   struct Value *v1 = v->children[0];
+   v1->grad  += v->n * (pow(v1->data , v->n - 1)) * v->grad;
+}
 void expBackwards(struct Value *v)
 {
   struct Value *v1 = v->children[0];

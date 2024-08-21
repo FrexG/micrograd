@@ -18,12 +18,14 @@ typedef enum
   MUL,
   DIV,
   EXP,
+  POW,
 } Op;
 
 typedef struct Value
 {
   double data;
   double grad;
+  double n; // the exponent for power ops
   size_t num_children;
   struct Value **children;
   Op op;
@@ -39,12 +41,18 @@ Value *_scalarAdd(struct Value *v1, double v2);
 Value *_scalarSub(struct Value *v1, double v2);
 Value *_mul(struct Value *v1, struct Value *v2);
 Value *_scalarMul(struct Value *v1, double v2);
+Value *_pow(struct Value *v1, double v2);
+Value *_div(struct Value *v1, struct Value *v2);
 Value *_exp(struct Value *v1);
+
+Value *_sigmoid(struct Value *v);
+Value *_tanh(struct Value *v);
 
 void noopBackward(struct Value *v);
 void addBackwards(struct Value *v);
 void mulBackwards(struct Value *v);
 void expBackwards(struct Value *v);
+void powBackwards(struct Value *v);
 void backward(struct Value *v); 
 
 bool valueIn(struct Value *v, struct Value** array);
