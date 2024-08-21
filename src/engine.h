@@ -53,9 +53,9 @@ void addBackwards(struct Value *v);
 void mulBackwards(struct Value *v);
 void expBackwards(struct Value *v);
 void powBackwards(struct Value *v);
-void backward(struct Value *v); 
+void backward(struct Value *v);
 
-bool valueIn(struct Value *v, struct Value** array);
+bool valueIn(struct Value *v, struct Value **array);
 void buildTopo(struct Value *v, struct Value **topo, struct Value **visisted, size_t *visited_cnt, size_t *topo_cnt);
 void appendTopo(struct Value *v, struct Value **topo, size_t *topo_cnt);
 
