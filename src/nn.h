@@ -24,9 +24,12 @@ typedef struct Network{
 } Network;
 
 Neuron *initNeuron(size_t num_inputs);
-Value **forward(Value *inpt);
+Value **forward(Network*net, Value **inpt);
 Layer *creatLayer(size_t num_inputs,size_t num_neurons);
+
 void freeNeuron(struct Neuron *neuron);
+void freeNet(struct Network *net);
+void freeLayer(struct Layer *layer);
 
 #endif
 
@@ -56,19 +59,23 @@ Neuron *initNeuron(size_t num_inputs){
 
 Value **forward(Network*net, Value **inpt){
   Value **logits;
+  Value **activations = inpt;
 
   for(size_t n = 0; n < net->num_layers; ++n){
     Layer *layer = net->layers[n];
     logits = (Value**) calloc(layer->num_neurons, sizeof(Value));
 
     for(size_t l = 0; l < layer->num_neurons; ++l){
+      logits[l] = initValue(0.0);
       Neuron *neuron = layer->neurons[l];
       for(size_t i = 0; i < neuron->num_inputs; ++i){
-        _add(logits[l],_mul(inpt[i],neuron->weights[i]));
+          logits[l] = _add(logits[l],_mul(activations[i],neuron->weights[i]));
+        PRINT_V(logits[l]);
       }
-      _add(logits[l],neuron->bias);
-      _tanh(logits[l]);
+      logits[l] = _add(logits[l],neuron->bias);
+      logits[l] = _tanh(logits[l]);
     }
+    activations = logits;
   }
   return logits;
 }
@@ -100,16 +107,31 @@ Network *createNetwork(size_t num_inputs, size_t num_outputs, size_t num_layers,
   net->num_inputs = num_inputs;
   net->num_outputs = num_outputs;
   net->num_layers = num_layers;
+  net->layers = (Layer**) calloc(num_layers,sizeof(Layer*));
 
   // Create layers
   size_t layer_input = num_inputs;
   for(size_t i = 0; i < num_layers; ++i){
     Layer *layer = createLayer(layer_input,layers[i]);
+    net->layers[i] = layer;
     layer_input = layers[i];
   }
   return net;
 }
 
+void freeNet(struct Network *net){
+  for(size_t i = 0; i < net->num_layers; ++i){
+    freeLayer(net->layers[i]);
+  }
+  free(net);
+}
+
+void freeLayer(struct Layer *layer){
+  for(size_t i = 0; i < layer->num_neurons; ++i){
+    freeNeuron(layer->neurons[i]);
+  }
+  free(layer);
+}
 void freeNeuron(struct Neuron *neuron){
   // free the bias value
   freeValue(neuron->bias);
