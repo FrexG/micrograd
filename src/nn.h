@@ -12,6 +12,8 @@ typedef struct Neuron{
 }Neuron;
 
 Neuron *initNeuron(size_t num_inputs);
+Value *forward(Value *inpt);
+void freeNeuron(struct Neuron *neuron);
 
 #endif
 
@@ -39,7 +41,15 @@ Neuron *initNeuron(size_t num_inputs){
   return neuron;
 }
 
-Value *forward()
+Value *forward(Neuron *n, Value **inpt){
+  Value *logit = calloc(1, sizeof(Value));
+  for(size_t i = 0; i < n->num_inputs;++i){
+    _add(logit, _mul(inpt[i],n->weights[i]));
+  }
+  _add(logit, n->bias);
+  return _tanh(logit);
+}
+
 void freeNeuron(struct Neuron *neuron){
   // free the bias value
   freeValue(neuron->bias);
