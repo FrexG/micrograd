@@ -16,7 +16,7 @@ Value *initValue(double data)
   value->num_children = 0;
   value->children = NULL;
   value->ref_count = 1;
-  value->backward = noopBackward;
+  value->backward = _noopBackward;
   return value;
 }
 
@@ -54,7 +54,7 @@ Value *_add(struct Value *v1, struct Value *v2)
   v->num_children = num_child;
   v->op = ADD;
   v->ref_count = 1;
-  v->backward = addBackwards;
+  v->backward = _addBackwards;
   return v;
 }
 Value *_sub(struct Value *v1, struct Value *v2)
@@ -82,7 +82,7 @@ Value *_scalarAdd(struct Value *v1, double c)
   v->num_children = num_child;
   v->op = ADD;
   v->ref_count = 1;
-  v->backward = addBackwards;
+  v->backward = _addBackwards;
   return v;
 }
 Value *_scalarSub(struct Value *v1, double c)
@@ -123,7 +123,7 @@ Value *_mul(struct Value *v1, struct Value *v2)
   v->num_children = num_child;
   v->op = MUL;
   v->ref_count = 1;
-  v->backward = mulBackwards;
+  v->backward = _mulBackwards;
   return v;
 }
 Value *_scalarMul(struct Value *v1, double c)
@@ -146,7 +146,7 @@ Value *_scalarMul(struct Value *v1, double c)
   v->num_children = num_child;
   v->op = MUL;
   v->ref_count = 1;
-  v->backward = mulBackwards;
+  v->backward = _mulBackwards;
   return v;
 }
 Value *_exp(struct Value *v1)
@@ -166,7 +166,7 @@ Value *_exp(struct Value *v1)
   v->num_children = num_child;
   v->op = EXP;
   v->ref_count = 1;
-  v->backward = expBackwards;
+  v->backward = _expBackwards;
   return v;
 }
 Value *_pow(struct Value *v1, double v2)
@@ -187,7 +187,7 @@ Value *_pow(struct Value *v1, double v2)
   v->num_children = num_child;
   v->op = POW;
   v->ref_count = 1;
-  v->backward = powBackwards;
+  v->backward = _powBackwards;
   return v;
 }
 
@@ -205,11 +205,11 @@ Value *_tanh(struct Value *v1)
   Value *e2x = _exp(_scalarMul(v1, 2));
   return _div(_scalarSub(e2x, 1), _scalarAdd(e2x, 1));
 }
-void noopBackward(struct Value *v) {
+void _noopBackward(struct Value *v) {
   // nothing
 };
 
-void addBackwards(struct Value *v)
+void _addBackwards(struct Value *v)
 {
   if (v->num_children == 1)
   {
@@ -225,7 +225,7 @@ void addBackwards(struct Value *v)
   }
 }
 
-void mulBackwards(struct Value *v)
+void _mulBackwards(struct Value *v)
 {
   if (v->num_children == 1)
   {
@@ -240,12 +240,12 @@ void mulBackwards(struct Value *v)
     v2->grad += v1->data * v->grad;
   }
 }
-void powBackwards(struct Value *v)
+void _powBackwards(struct Value *v)
 {
   struct Value *v1 = v->children[0];
   v1->grad += v->n * (pow(v1->data, v->n - 1)) * v->grad;
 }
-void expBackwards(struct Value *v)
+void _expBackwards(struct Value *v)
 {
   struct Value *v1 = v->children[0];
   v1->grad += v->data * v->grad;
@@ -289,7 +289,7 @@ void buildTopo(struct Value *v, struct Value **topo, struct Value **visited, siz
     appendTopo(v, topo, topo_cnt);
   }
 }
-void backward(struct Value *v)
+void _backward(struct Value *v)
 {
   Value **topo = calloc(TOPO_SIZE, sizeof(Value *));
   Value **visited = calloc(TOPO_SIZE, sizeof(Value *));

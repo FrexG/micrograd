@@ -48,12 +48,12 @@ Value *_exp(struct Value *v1);
 Value *_sigmoid(struct Value *v);
 Value *_tanh(struct Value *v);
 
-void noopBackward(struct Value *v);
-void addBackwards(struct Value *v);
-void mulBackwards(struct Value *v);
-void expBackwards(struct Value *v);
-void powBackwards(struct Value *v);
-void backward(struct Value *v);
+void _noopBackward(struct Value *v);
+void _addBackwards(struct Value *v);
+void _mulBackwards(struct Value *v);
+void _expBackwards(struct Value *v);
+void _powBackwards(struct Value *v);
+void _backward(struct Value *v);
 
 bool valueIn(struct Value *v, struct Value **array);
 void buildTopo(struct Value *v, struct Value **topo, struct Value **visisted, size_t *visited_cnt, size_t *topo_cnt);
