@@ -317,10 +317,6 @@ void freeValue(struct Value *value)
   value->ref_count--;
   if (value->children != NULL)
   {
-    printf("Has Children\n");
-    printf("\t%f\n", value->data);
-    printf("\tref count = %d\n", value->ref_count);
-
     for (size_t i = 0; i < value->num_children; ++i)
     {
       if (value->children[i] != NULL)
@@ -331,7 +327,6 @@ void freeValue(struct Value *value)
   }
   if (value->ref_count <= 1 && value != NULL)
   {
-    printf("free %f\n", value->data ? value->data : 0.0);
     free(value);
     value = NULL;
   }
