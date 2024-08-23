@@ -19,6 +19,7 @@ typedef enum
   DIV,
   EXP,
   POW,
+  LOG,
 } Op;
 
 typedef struct Value
@@ -42,6 +43,7 @@ Value *_scalarSub(struct Value *v1, double v2);
 Value *_mul(struct Value *v1, struct Value *v2);
 Value *_scalarMul(struct Value *v1, double v2);
 Value *_pow(struct Value *v1, double v2);
+Value *_log(struct Value *v1); // natural log
 Value *_div(struct Value *v1, struct Value *v2);
 Value *_exp(struct Value *v1);
 
@@ -53,6 +55,7 @@ void _addBackwards(struct Value *v);
 void _mulBackwards(struct Value *v);
 void _expBackwards(struct Value *v);
 void _powBackwards(struct Value *v);
+void _logBackwards(struct Value *v);
 void _backward(struct Value *v);
 
 bool valueIn(struct Value *v, struct Value **array);

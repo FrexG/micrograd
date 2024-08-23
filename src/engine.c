@@ -190,7 +190,26 @@ Value *_pow(struct Value *v1, double v2)
   v->backward = _powBackwards;
   return v;
 }
+Value *_log(struct Value *v1){
 
+ Value *v = initValue(log(v1->data));
+  size_t num_child = 1;
+  v->children = calloc(num_child, sizeof(Value *));
+
+  if (v->children == NULL)
+  {
+    fprintf(stderr, "Error: Memory Allocation failed\n");
+    return NULL;
+  }
+
+  v1->ref_count++;
+  v->children[0] = v1;
+  v->num_children = num_child;
+  v->op = LOG;
+  v->ref_count = 1;
+  v->backward = _powBackwards;
+  return v; 
+}
 Value *_div(struct Value *v1, struct Value *v2)
 {
   // division, can be represented as a multiplication and a power op.
@@ -244,6 +263,12 @@ void _powBackwards(struct Value *v)
 {
   struct Value *v1 = v->children[0];
   v1->grad += v->n * (pow(v1->data, v->n - 1)) * v->grad;
+}
+
+void _logBackwards(struct Value *v)
+{
+  struct Value *v1 = v->children[0];
+  v1->grad += 1/v1->data * v->grad;
 }
 void _expBackwards(struct Value *v)
 {
