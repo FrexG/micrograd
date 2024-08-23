@@ -23,9 +23,16 @@ typedef struct Network{
   struct Layer **layers;
 } Network;
 
+// Construction
 Neuron *initNeuron(size_t num_inputs);
-Value **forward(Network*net, Value **inpt);
 Layer *creatLayer(size_t num_inputs,size_t num_neurons);
+// Computation
+Value **forward(Network*net, Value **inpt);
+// Cost
+Value *mse(Value **logits, Value **targets, size_t num_outputs);
+// Optimizers
+void sgd(Network *net, double lr);
+void zeroGrad(Network *net);
 
 void freeNeuron(struct Neuron *neuron);
 void freeNet(struct Network *net);
@@ -70,7 +77,6 @@ Value **forward(Network*net, Value **inpt){
       Neuron *neuron = layer->neurons[l];
       for(size_t i = 0; i < neuron->num_inputs; ++i){
           logits[l] = _add(logits[l],_mul(activations[i],neuron->weights[i]));
-        PRINT_V(logits[l]);
       }
       logits[l] = _add(logits[l],neuron->bias);
       logits[l] = _tanh(logits[l]);
@@ -119,6 +125,40 @@ Network *createNetwork(size_t num_inputs, size_t num_outputs, size_t num_layers,
   return net;
 }
 
+Value *mse(Value **logits, Value **targets, size_t num_outputs){
+  Value *loss = initValue(0.0);
+  for(size_t i = 0; i < num_outputs; ++i){
+    loss = _pow(_sub(targets[i], logits[i]),2.0);
+  }
+  return loss;
+}
+
+void sgd(Network *net, double lr){
+  for(size_t n = 0; n < net->num_layers; ++n){
+    Layer *layer = net->layers[n];
+    for(size_t l = 0; l < layer->num_neurons; ++l){
+      Neuron *neuron = layer->neurons[l];
+      neuron->bias->data -= lr * neuron->bias->grad;
+      for(size_t i = 0; i < neuron->num_inputs; ++i){
+        neuron->weights[i]->data -= lr * neuron->weights[i]->grad;
+      }
+    }
+  }
+}
+
+void zeroGrad(Network *net){
+  for(size_t n = 0; n < net->num_layers; ++n){
+    Layer *layer = net->layers[n];
+    for(size_t l = 0; l < layer->num_neurons; ++l){
+      Neuron *neuron = layer->neurons[l];
+      neuron->bias->grad = 0.0;
+      for(size_t i = 0; i < neuron->num_inputs; ++i){
+        neuron->weights[i]->grad = 0.0;
+      }
+    }
+  }
+}
+
 void freeNet(struct Network *net){
   for(size_t i = 0; i < net->num_layers; ++i){
     freeLayer(net->layers[i]);
@@ -133,11 +173,6 @@ void freeLayer(struct Layer *layer){
   free(layer);
 }
 void freeNeuron(struct Neuron *neuron){
-  // free the bias value
-  freeValue(neuron->bias);
-  for(size_t i = 0; i < neuron->num_inputs; ++i){
-    freeValue(neuron->weights[i]);
-  }
   free(neuron->weights);
   free(neuron);
 }
