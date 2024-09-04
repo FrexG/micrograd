@@ -23,7 +23,16 @@ typedef enum
   LOG,
   SIGMOID,
   TANH
-} Op;
+} OP;
+
+typedef enum
+{
+  AUTON, // autonomous value, independent and alone
+  INPUT,
+  OUTPUT,
+  OP_OUT, // result of an operation (add, mul, ....)
+  LOGIT,  // output of an activation function (tanh, sigmoid, ...)
+} VALUE_TYPE;
 
 typedef struct Value
 {
@@ -32,19 +41,13 @@ typedef struct Value
   double n; // the exponent for power ops
   size_t num_children;
   struct Value **children;
-  Op op;
   int ref_count;
   void (*backward)(struct Value *);
+  OP op;
+  VALUE_TYPE type;
 } Value;
 
-typedef struct Tensor{
-  size_t rows;
-  size_t cols;
-  Value **values;
-}Tensor;
-
 Value *initValue(double data);
-Tensor *newTensor(size_t row, size_t col);
 
 Value *_add(struct Value *v1, struct Value *v2);
 Value *_sub(struct Value *v1, struct Value *v2);
@@ -81,7 +84,7 @@ void printValue(struct Value *v, char *name);
 
 Value *initValue(double data)
 {
-  Value *value = calloc(1, sizeof(Value));
+  Value *value = malloc(sizeof(Value));
 
   if (value == NULL)
   {
@@ -96,43 +99,57 @@ Value *initValue(double data)
   value->children = NULL;
   value->ref_count = 1;
   value->backward = _noopBackward;
+  value->type = AUTON;
   return value;
+}
+
+void _initChildren(struct Value *v,struct Value *v1, struct Value *v2){
+size_t num_children = 0;
+Value **children = NULL;
+
+if((v1 == v2) || v2 == NULL){
+  if (v1->type != INPUT){
+      num_children = 1;
+      children = malloc(num_children* sizeof(Value*));
+      v1->ref_count++;
+      children[0] = v1;
+    }
+  }
+  else{
+      if(v1->type == INPUT && v2->type != INPUT){
+        num_children = 1;
+        children = malloc(num_children* sizeof(Value*));
+        v2->ref_count++;
+        children[0] = v2;
+      }
+      if(v2->type == INPUT && v1->type != INPUT){
+        num_children = 1;
+        children = malloc(num_children* sizeof(Value*));
+        v1->ref_count++;
+        children[0] = v1;
+      }
+      if(v1->type != INPUT && v2->type != INPUT){
+        num_children = 2;
+        children = malloc(num_children* sizeof(Value*));
+        v1->ref_count++;
+        v2->ref_count++;
+        children[0] = v1;
+        children[1] = v2;
+      }
+  } 
+  v->num_children = num_children;
+  v->children = children;
 }
 
 Value *_add(struct Value *v1, struct Value *v2)
 {
   Value *v = initValue(v1->data + v2->data);
-  size_t num_child = 2;
-  if (v1 == v2)
-    num_child = 1;
-  v->children = calloc(num_child, sizeof(Value *));
 
-  if (v->children == NULL)
-  {
-    fprintf(stderr, "Error: Memory Allocation failed\n");
-    return NULL;
-  }
-  if (v1 == NULL || v2 == NULL)
-  {
-    fprintf(stderr, "Values couldn't be NULL\n");
-    return NULL;
-  }
+  _initChildren(v,v1,v2);
 
-  if (num_child == 1)
-  {
-    v1->ref_count++;
-    v->children[0] = v1;
-  }
-  else
-  {
-    v1->ref_count++;
-    v2->ref_count++;
-    v->children[0] = v1;
-    v->children[1] = v2;
-  }
-  v->num_children = num_child;
   v->op = ADD;
   v->ref_count = 1;
+  v->type = OP_OUT;
   v->backward = _addBackwards;
   return v;
 }
@@ -145,22 +162,11 @@ Value *_scalarAdd(struct Value *v1, double c)
 {
   Value *v2 = initValue(c);
   Value *v = initValue(v1->data + v2->data);
-  size_t num_child = 2;
-  v->children = calloc(num_child, sizeof(Value *));
 
-  if (v->children == NULL)
-  {
-    fprintf(stderr, "Error: Memory Allocation failed\n");
-    return NULL;
-  }
-
-  v1->ref_count++;
-  v2->ref_count++;
-  v->children[0] = v1;
-  v->children[1] = v2;
-  v->num_children = num_child;
+  _initChildren(v,v1,v2);
   v->op = ADD;
   v->ref_count = 1;
+  v->type = OP_OUT;
   v->backward = _addBackwards;
   return v;
 }
@@ -171,37 +177,11 @@ Value *_scalarSub(struct Value *v1, double c)
 Value *_mul(struct Value *v1, struct Value *v2)
 {
   Value *v = initValue(v1->data * v2->data);
-  size_t num_child = 2;
-  if (v1 == v2)
-    num_child = 1;
-  v->children = calloc(num_child, sizeof(Value *));
-
-  if (v->children == NULL)
-  {
-    fprintf(stderr, "Error: Memory Allocation failed\n");
-    return NULL;
-  }
-  if (v1 == NULL || v2 == NULL)
-  {
-    fprintf(stderr, "Values couldn't be NULL\n");
-    return NULL;
-  }
-
-  if (num_child == 1)
-  {
-    v1->ref_count++;
-    v->children[0] = v1;
-  }
-  else
-  {
-    v1->ref_count++;
-    v2->ref_count++;
-    v->children[0] = v1;
-    v->children[1] = v2;
-  }
-  v->num_children = num_child;
+  
+  _initChildren(v,v1,v2);
   v->op = MUL;
   v->ref_count = 1;
+  v->type = OP_OUT;
   v->backward = _mulBackwards;
   return v;
 }
@@ -209,85 +189,45 @@ Value *_scalarMul(struct Value *v1, double c)
 {
   Value *v2 = initValue(c);
   Value *v = initValue(v1->data * v2->data);
-  size_t num_child = 2;
-  v->children = calloc(num_child, sizeof(Value *));
 
-  if (v->children == NULL)
-  {
-    fprintf(stderr, "Error: Memory Allocation failed\n");
-    return NULL;
-  }
-
-  v1->ref_count++;
-  v2->ref_count++;
-  v->children[0] = v1;
-  v->children[1] = v2;
-  v->num_children = num_child;
+  _initChildren(v,v1,v2);
   v->op = MUL;
   v->ref_count = 1;
+  v->type = OP_OUT;
   v->backward = _mulBackwards;
   return v;
 }
 Value *_exp(struct Value *v1)
 {
   Value *v = initValue(exp(v1->data));
-  size_t num_child = 1;
-  v->children = calloc(num_child, sizeof(Value *));
-
-  if (v->children == NULL)
-  {
-    fprintf(stderr, "Error: Memory Allocation failed\n");
-    return NULL;
-  }
-
-  v1->ref_count++;
-  v->children[0] = v1;
-  v->num_children = num_child;
+  _initChildren(v,v1,NULL);
   v->op = EXP;
   v->ref_count = 1;
+  v->type = OP_OUT;
   v->backward = _expBackwards;
   return v;
 }
 Value *_pow(struct Value *v1, double v2)
 {
   Value *v = initValue(pow(v1->data, v2));
-  size_t num_child = 1;
-  v->children = calloc(num_child, sizeof(Value *));
-
-  if (v->children == NULL)
-  {
-    fprintf(stderr, "Error: Memory Allocation failed\n");
-    return NULL;
-  }
-
-  v1->ref_count++;
+  _initChildren(v,v1,NULL);
   v->n = v2;
-  v->children[0] = v1;
-  v->num_children = num_child;
   v->op = POW;
   v->ref_count = 1;
+  v->type = OP_OUT;
   v->backward = _powBackwards;
   return v;
 }
-Value *_log(struct Value *v1){
+Value *_log(struct Value *v1)
+{
 
- Value *v = initValue(log(v1->data));
-  size_t num_child = 1;
-  v->children = calloc(num_child, sizeof(Value *));
-
-  if (v->children == NULL)
-  {
-    fprintf(stderr, "Error: Memory Allocation failed\n");
-    return NULL;
-  }
-
-  v1->ref_count++;
-  v->children[0] = v1;
-  v->num_children = num_child;
+  Value *v = initValue(log(v1->data));
+  _initChildren(v,v1,NULL);
   v->op = LOG;
   v->ref_count = 1;
-  v->backward = _powBackwards;
-  return v; 
+  v->type = OP_OUT;
+  v->backward = _logBackwards;
+  return v;
 }
 Value *_div(struct Value *v1, struct Value *v2)
 {
@@ -297,66 +237,28 @@ Value *_div(struct Value *v1, struct Value *v2)
 Value *_sigmoid(struct Value *v1)
 {
   return _pow(_scalarAdd(_exp(_scalarMul(v1, -1)), 1), -1);
- /* 
-  Value *v = initValue(1/ 1 + exp(-1 * v1->data));
-  size_t num_child = 1;
-  v->children = calloc(num_child, sizeof(Value *));
-
-  if (v->children == NULL)
-  {
-    fprintf(stderr, "Error: Memory Allocation failed\n");
-    return NULL;
-  }
-
-  v1->ref_count++;
-  v->children[0] = v1;
-  v->num_children = num_child;
-  v->op = SIGMOID;
-  v->ref_count = 1;
-  v->backward = _sigmoidBackwards;
-  return v; 
-  */
-  
 }
 
 Value *_tanh(struct Value *v1)
 {
-  /*
+  
   Value *e2x = _exp(_scalarMul(v1, 2));
   return _div(_scalarSub(e2x, 1), _scalarAdd(e2x, 1));
-  */
-
-  Value *v = initValue(tanh(v1->data));
-  size_t num_child = 1;
-  v->children = calloc(num_child, sizeof(Value *));
-
-  if (v->children == NULL)
-  {
-    fprintf(stderr, "Error: Memory Allocation failed\n");
-    return NULL;
-  }
-
-  v1->ref_count++;
-  v->children[0] = v1;
-  v->num_children = num_child;
-  v->op = TANH;
-  v->ref_count = 1;
-  v->backward = _tanhBackwards;
-  return v; 
 }
 
 void _noopBackward(struct Value *v) {
   // nothing
-  
 };
 
-void _sigmoidBackwards(struct Value *v){
+void _sigmoidBackwards(struct Value *v)
+{
   struct Value *v1 = v->children[0];
   v1->grad += v->grad * v->data * (1 - v->data);
 }
-void _tanhBackwards(struct Value *v){
+void _tanhBackwards(struct Value *v)
+{
   struct Value *v1 = v->children[0];
-  v1->grad += v->grad * (1 - pow(tanh(v->data),2));
+  v1->grad += v->grad * (1 - pow(tanh(v->data), 2));
 }
 
 void _addBackwards(struct Value *v)
@@ -399,7 +301,7 @@ void _powBackwards(struct Value *v)
 void _logBackwards(struct Value *v)
 {
   struct Value *v1 = v->children[0];
-  v1->grad += 1/v1->data * v->grad;
+  v1->grad += 1 / v1->data * v->grad;
 }
 void _expBackwards(struct Value *v)
 {
@@ -430,7 +332,7 @@ void buildTopo(struct Value *v, struct Value **topo, struct Value **visited, siz
 {
   if (v == NULL)
     return;
-    
+
   if (!valueIn(v, visited))
   {
     if (*visited_cnt < TOPO_SIZE)
@@ -454,14 +356,14 @@ void _backward(struct Value *v)
 
   size_t visited_cnt = 0;
   size_t topo_cnt = 0;
-  v->grad = 1.0;
   buildTopo(v, topo, visited, &visited_cnt, &topo_cnt);
-  for (int i = topo_cnt - 1; i >= 0; i--)
+  for (int i = topo_cnt - 1; i > 0; i--)
   {
     if (topo[i] != NULL)
     {
-      if(topo[i]->op != NONE)
+      if (topo[i]->op != NONE || topo[i]->type != INPUT || topo[i]->type != OUTPUT)
         topo[i]->backward(topo[i]);
+
     }
   }
   // free buffers
@@ -475,7 +377,6 @@ void freeValue(struct Value *value)
   {
     return;
   }
-  PRINT_V(value);
   value->ref_count--;
   if (value->children != NULL)
   {
@@ -490,7 +391,6 @@ void freeValue(struct Value *value)
 
   if (value->ref_count <= 1 && value->ref_count >= 0 && value != NULL)
   {
-    printf("Free %f\n",value->data);
     free(value);
     value = NULL;
   }
