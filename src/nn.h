@@ -88,15 +88,9 @@ Value **forward(Network *net, Value **inpt)
       
       for (size_t i = 0; i < neuron->num_inputs; ++i)
       {
-        /*
-        Value *temp = _add(logit, _mul(activations[i], neuron->weights[i]));
-        free(logit);
-        logit = temp;
-        */
         logit = _add(logit, _mul(activations[i], neuron->weights[i]));
       }
-      //Value *temp = _add(logit, neuron->bias);
-      //free(logit);
+
       logit = _add(logit, neuron->bias);
 
       if(layer_id == net->num_layers-1)
@@ -107,8 +101,11 @@ Value **forward(Network *net, Value **inpt)
       //free(temp);
       logits[neuron_id] = logit;
     }
+    //free(activations);
     activations = logits;
   }
+  //for(size_t i = 0; i < net->num_outputs; ++i)
+  //  activations[i]->type = OUTPUT;
   return activations;
 }
 
@@ -204,7 +201,6 @@ void freeNet(struct Network *net)
   }
   free(net);
 }
-
 void freeLayer(struct Layer *layer)
 {
   for (size_t i = 0; i < layer->num_neurons; ++i)
