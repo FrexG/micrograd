@@ -155,6 +155,7 @@ Value *_add(struct Value *v1, struct Value *v2)
 }
 Value *_sub(struct Value *v1, struct Value *v2)
 {
+  /* v1 - v2 */
   return _add(v1, _scalarMul(v2, -1));
 }
 
@@ -351,6 +352,7 @@ void buildTopo(struct Value *v, struct Value **topo, struct Value **visited, siz
 
 void _backward(struct Value *v)
 {
+  v->grad = 1.0;
   Value **topo = calloc(TOPO_SIZE, sizeof(Value *));
   Value **visited = calloc(TOPO_SIZE, sizeof(Value *));
 
