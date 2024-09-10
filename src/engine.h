@@ -22,6 +22,7 @@ typedef enum
   POW,
   LOG,
   SIGMOID,
+  RELU,
   TANH
 } OP;
 
@@ -62,6 +63,7 @@ Value *_exp(struct Value *v1);
 
 Value *_sigmoid(struct Value *v);
 Value *_tanh(struct Value *v);
+Value *_relu(struct Value *v);
 
 void _noopBackward(struct Value *v);
 void _addBackwards(struct Value *v);
@@ -71,6 +73,7 @@ void _powBackwards(struct Value *v);
 void _logBackwards(struct Value *v);
 void _sigmoidBackwards(struct Value *v);
 void _tanhBackwards(struct Value *v);
+void _reluBackwards(struct Value *v);
 void _backward(struct Value *v);
 
 bool valueIn(struct Value *v, struct Value **array);
@@ -247,6 +250,15 @@ Value *_tanh(struct Value *v1)
   return _div(_scalarSub(e2x, 1), _scalarAdd(e2x, 1));
 }
 
+Value *_relu(struct Value *v1){
+  double relu_param = 0.001f;
+  Value *v = initValue(v1->data >= 0.0f ? v1->data : relu_param);
+  _initChildren(v,v1,NULL);
+  v->op = RELU;
+  v->ref_count = 1;
+  v->type = LOGIT;
+  v->backward = _reluBackwards;
+}
 void _noopBackward(struct Value *v) {
   // nothing
 };
@@ -259,9 +271,15 @@ void _sigmoidBackwards(struct Value *v)
 void _tanhBackwards(struct Value *v)
 {
   struct Value *v1 = v->children[0];
-  v1->grad += v->grad * (1 - pow(tanh(v->data), 2));
+  //v1->grad += v->grad * (1 - pow(tanh(v->data), 2));
+  v1->grad += v->grad * (1 - pow(v->data, 2));
 }
 
+void _reluBackwards(struct Value *v){
+  struct Value *v1 = v->children[0];
+  v1->grad += v->grad * (v->data >= 0 ? 1.0 : v->data);
+
+}
 void _addBackwards(struct Value *v)
 {
   if (v->num_children == 1)
