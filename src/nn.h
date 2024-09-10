@@ -34,8 +34,9 @@ Network *createNetwork(size_t num_inputs, size_t num_outputs, size_t num_layers,
 Value **forward(Network *net, Value **inpt);
 // Cost
 Value *mse(Value *logit, Value *target);
+Value *crossEntropy(Value *logit, Value *target);
 // Optimizers
-void sgd(Network *net, double lr);
+void sgd(Network *net, double lr, bool bias);
 void zeroGrad(Network *net);
 
 void freeNeuron(struct Neuron *neuron);
@@ -58,14 +59,16 @@ Neuron *initNeuron(size_t num_inputs)
   neuron->num_inputs = num_inputs;
   neuron->weights = (Value **)calloc(num_inputs, sizeof(Neuron *));
 
+  double data;
+
   for (size_t i = 0; i < num_inputs; ++i)
   {
-    double data = (double)rand() / RAND_MAX;
+    data = (double)rand() / RAND_MAX;
     Value *w = initValue(data);
     neuron->weights[i] = w;
   }
 
-  double data = (double)rand() / RAND_MAX;
+  data = (double)rand() / RAND_MAX;
   neuron->bias = initValue(data);
 
   return neuron;
@@ -85,27 +88,30 @@ Value **forward(Network *net, Value **inpt)
     {
       Value *logit = initValue(0); // let's allocate on the stack
       Neuron *neuron = layer->neurons[neuron_id];
-      
+
       for (size_t i = 0; i < neuron->num_inputs; ++i)
       {
+        neuron->weights[i]->ref_count = 1.0; // reset ref_count
+
         logit = _add(logit, _mul(activations[i], neuron->weights[i]));
       }
 
+      neuron->bias->ref_count = 1.0; // reset ref_count
       logit = _add(logit, neuron->bias);
 
-      if(layer_id == net->num_layers-1)
+      if (layer_id == net->num_layers - 1)
         //logit = _sigmoid(logit);
         logit = logit;
       else
-        logit = _tanh(logit);
-      //free(temp);
+        logit = _relu(logit);
+        //logit = _tanh(logit);
       logits[neuron_id] = logit;
     }
-    //free(activations);
+    // free(activations);
     activations = logits;
   }
-  //for(size_t i = 0; i < net->num_outputs; ++i)
-  //  activations[i]->type = OUTPUT;
+  // for(size_t i = 0; i < net->num_outputs; ++i)
+  //   activations[i]->type = OUTPUT;
   return activations;
 }
 
@@ -159,7 +165,15 @@ Value *mse(Value *logit, Value *target)
   return _pow(_sub(target, logit), 2.0);
 }
 
-void sgd(Network *net, double lr)
+Value *crossEntropy(Value *logit, Value *target)
+{
+  /* This is an implementation of a binary cross entropy loss */
+  Value *prior = _mul(target, _log(logit));
+  Value *post = _mul(_scalarAdd(_scalarMul(target, -1), 1), _log(_scalarAdd(_scalarMul(logit, -1), 1)));
+  return _add(prior, post);
+}
+
+void sgd(Network *net, double lr, bool bias)
 {
   for (size_t n = 0; n < net->num_layers; ++n)
   {
@@ -167,10 +181,19 @@ void sgd(Network *net, double lr)
     for (size_t l = 0; l < layer->num_neurons; ++l)
     {
       Neuron *neuron = layer->neurons[l];
-      neuron->bias->data -= lr * neuron->bias->grad;
+
+      if (bias == true)
+        neuron->bias->data -= lr * neuron->bias->grad;
+        // Underflow prevention
+        if(neuron->bias->data < 0.000001)
+          neuron->bias->data = 0;
+
       for (size_t i = 0; i < neuron->num_inputs; ++i)
       {
         neuron->weights[i]->data -= lr * neuron->weights[i]->grad;
+        // Underflow prevention
+        if(neuron->weights[i]->data < 0.000001)
+          neuron->weights[i]->data = 0;
       }
     }
   }
