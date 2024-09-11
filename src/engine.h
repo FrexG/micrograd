@@ -8,6 +8,7 @@
 #include <math.h>
 #include <stdbool.h>
 
+#define EPSILON 0.000000001
 #define TOPO_SIZE 1000
 #define PRINT_V(v) printValue(v, #v)
 
@@ -225,7 +226,7 @@ Value *_pow(struct Value *v1, double v2)
 Value *_log(struct Value *v1)
 {
 
-  Value *v = initValue(log(v1->data));
+  Value *v = initValue(log(v1->data + EPSILON));
   _initChildren(v,v1,NULL);
   v->op = LOG;
   v->ref_count = 1;
@@ -320,7 +321,7 @@ void _powBackwards(struct Value *v)
 void _logBackwards(struct Value *v)
 {
   struct Value *v1 = v->children[0];
-  v1->grad += 1 / v1->data * v->grad;
+  v1->grad += 1 / (v1->data  + EPSILON);
 }
 void _expBackwards(struct Value *v)
 {
