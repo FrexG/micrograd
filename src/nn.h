@@ -100,8 +100,8 @@ Value **forward(Network *net, Value **inpt)
       logit = _add(logit, neuron->bias);
 
       if (layer_id == net->num_layers - 1)
-        //logit = _sigmoid(logit);
-        logit = logit;
+        logit = _sigmoid(logit);
+        //logit = logit;
       else
         logit = _relu(logit);
         //logit = _tanh(logit);
@@ -169,7 +169,7 @@ Value *crossEntropy(Value *logit, Value *target)
 {
   /* This is an implementation of a binary cross entropy loss */
   Value *prior = _mul(target, _log(logit));
-  Value *post = _mul(_scalarAdd(_scalarMul(target, -1), 1), _log(_scalarAdd(_scalarMul(logit, -1), 1)));
+  Value *post = _mul(_scalarAdd(_scalarMul(target, -1), 1), _log(_scalarAdd(_scalarMul( logit, -1), 1)));
   return _add(prior, post);
 }
 
@@ -185,15 +185,15 @@ void sgd(Network *net, double lr, bool bias)
       if (bias == true)
         neuron->bias->data -= lr * neuron->bias->grad;
         // Underflow prevention
-        if(neuron->bias->data < 0.000001)
-          neuron->bias->data = 0;
+        if(neuron->bias->data < EPSILON) 
+          neuron->bias->data = EPSILON;
 
       for (size_t i = 0; i < neuron->num_inputs; ++i)
       {
         neuron->weights[i]->data -= lr * neuron->weights[i]->grad;
         // Underflow prevention
-        if(neuron->weights[i]->data < 0.000001)
-          neuron->weights[i]->data = 0;
+        if(neuron->weights[i]->data < EPSILON)
+          neuron->weights[i]->data = EPSILON;
       }
     }
   }
