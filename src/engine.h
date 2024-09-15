@@ -8,8 +8,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-#define EPSILON 0.000000001
-#define TOPO_SIZE 1000
+#define EPSILON 0.0000001
+#define TOPO_SIZE 10000
 #define PRINT_V(v) printValue(v, #v)
 
 typedef enum
@@ -226,7 +226,7 @@ Value *_pow(struct Value *v1, double v2)
 Value *_log(struct Value *v1)
 {
 
-  Value *v = initValue(log(v1->data + EPSILON));
+  Value *v = initValue(log(v1->data - EPSILON));
   _initChildren(v,v1,NULL);
   v->op = LOG;
   v->ref_count = 1;
@@ -259,7 +259,9 @@ Value *_relu(struct Value *v1){
   v->ref_count = 1;
   v->type = LOGIT;
   v->backward = _reluBackwards;
+  return v;
 }
+
 void _noopBackward(struct Value *v) {
   // nothing
 };
@@ -315,7 +317,7 @@ void _mulBackwards(struct Value *v)
 void _powBackwards(struct Value *v)
 {
   struct Value *v1 = v->children[0];
-  v1->grad += v->n * (pow(v1->data, v->n - 1)) * v->grad;
+  v1->grad += (v->n * (pow(v1->data, v->n - 1))) * v->grad;
 }
 
 void _logBackwards(struct Value *v)
@@ -371,7 +373,6 @@ void buildTopo(struct Value *v, struct Value **topo, struct Value **visited, siz
 
 void _backward(struct Value *v)
 {
-  v->grad = 1.0;
   Value **topo = calloc(TOPO_SIZE, sizeof(Value *));
   Value **visited = calloc(TOPO_SIZE, sizeof(Value *));
 
@@ -382,7 +383,7 @@ void _backward(struct Value *v)
   {
     if (topo[i] != NULL)
     {
-      if (topo[i]->op != NONE || topo[i]->type != INPUT || topo[i]->type != OUTPUT)
+      if (topo[i]->op != NONE)// || topo[i]->type != INPUT || topo[i]->type != OUTPUT)
         topo[i]->backward(topo[i]);
 
     }
