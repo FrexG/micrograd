@@ -5,11 +5,14 @@
 #include <time.h>
 #include "engine.h"
 
+typedef Value *(*activation)(struct Value *);
+
 typedef struct Neuron
 {
   size_t num_inputs;
   struct Value **weights;
   struct Value *bias;
+  activation activation_fun;
 } Neuron;
 
 typedef struct Layer
@@ -27,9 +30,9 @@ typedef struct Network
 } Network;
 
 // Construction
-Neuron *initNeuron(size_t num_inputs);
-Layer *creatLayer(size_t num_inputs, size_t num_neurons);
-Network *createNetwork(size_t num_inputs, size_t num_outputs, size_t num_layers, size_t *layers);
+Neuron *initNeuron(size_t num_inputs, activation activation_fun);
+Layer *creatLayer(size_t num_inputs, size_t num_neurons,activation activation_fun);
+Network *createNetwork(size_t num_inputs, size_t num_outputs, size_t num_layers, size_t *layers, activation *activations);
 // Computation
 Value **forward(Network *net, Value **inpt);
 // Cost
@@ -46,32 +49,6 @@ void freeLayer(struct Layer *layer);
 #endif
 
 // #ifdef NN_IMPLEMENTATION
-
-Neuron *initNeuron(size_t num_inputs)
-{
-  Neuron *neuron = (Neuron *)calloc(1, sizeof(Neuron));
-
-  double std_dev = sqrt(2.0 / num_inputs);
-
-  if (neuron == NULL)
-  {
-    fprintf(stderr, "Error allocating memory for a neuron\n");
-    return NULL;
-  }
-  neuron->num_inputs = num_inputs;
-  neuron->weights = (Value **)calloc(num_inputs, sizeof(Neuron *));
-
-  for (size_t i = 0; i < num_inputs; ++i)
-  {
-    // change seed everytime
-    double data = (double)(rand() % RAND_MAX) / RAND_MAX * 2.0 * std_dev - std_dev;
-    Value *w = initValue(data);
-    neuron->weights[i] = w;
-  }
-
-  neuron->bias = initValue(0.0);
-  return neuron;
-}
 
 Value **forward(Network *net, Value **inpt)
 {
@@ -98,10 +75,11 @@ Value **forward(Network *net, Value **inpt)
       neuron->bias->ref_count = 1.0; // reset ref_count
       logit = _add(logit, neuron->bias);
 
-      if (layer_id == net->num_layers - 1)
-        logit = _tanh(logit);
+      if(neuron->activation_fun == NULL)
+        logit = logit;
       else
-        logit = _relu(logit);
+        logit = neuron->activation_fun(logit);
+
       logits[neuron_id] = logit;
     }
     // free(activations);
@@ -112,7 +90,34 @@ Value **forward(Network *net, Value **inpt)
   return activations;
 }
 
-Layer *createLayer(size_t num_inputs, size_t num_neurons)
+Neuron *initNeuron(size_t num_inputs, activation activation_fun)
+{
+  Neuron *neuron = (Neuron *)calloc(1, sizeof(Neuron));
+
+  double std_dev = sqrt(2.0 / num_inputs);
+
+  if (neuron == NULL)
+  {
+    fprintf(stderr, "Error allocating memory for a neuron\n");
+    return NULL;
+  }
+  neuron->num_inputs = num_inputs;
+  neuron->weights = (Value **)calloc(num_inputs, sizeof(Neuron *));
+
+  for (size_t i = 0; i < num_inputs; ++i)
+  {
+    // change seed everytime
+    double data = (double)(rand() % RAND_MAX) / RAND_MAX * 2.0 * std_dev - std_dev;
+    Value *w = initValue(data);
+    neuron->weights[i] = w;
+    neuron->activation_fun = activation_fun;
+  }
+
+  neuron->bias = initValue(0.0);
+  return neuron;
+}
+
+Layer *createLayer(size_t num_inputs, size_t num_neurons, activation activation_fun)
 {
   // creat a layer
   Layer *layer = (Layer *)calloc(1, sizeof(Layer));
@@ -126,13 +131,13 @@ Layer *createLayer(size_t num_inputs, size_t num_neurons)
 
   for (size_t i = 0; i < num_neurons; ++i)
   {
-    Neuron *n = initNeuron(num_inputs);
+    Neuron *n = initNeuron(num_inputs, activation_fun);
     layer->neurons[i] = n;
   }
   return layer;
 }
 
-Network *createNetwork(size_t num_inputs, size_t num_outputs, size_t num_layers, size_t *layers)
+Network *createNetwork(size_t num_inputs, size_t num_outputs, size_t num_layers, size_t *layers, activation *activations)
 {
   Network *net = (Network *)calloc(1, sizeof(Network));
   if (net == NULL)
@@ -150,7 +155,7 @@ Network *createNetwork(size_t num_inputs, size_t num_outputs, size_t num_layers,
   size_t layer_input = num_inputs;
   for (size_t i = 0; i < num_layers; ++i)
   {
-    Layer *layer = createLayer(layer_input, layers[i]);
+    Layer *layer = createLayer(layer_input, layers[i], activations[i]);
     net->layers[i] = layer;
     layer_input = layers[i];
   }
