@@ -21,9 +21,10 @@ Micrograd is a lightweight implementation of automatic differentiation (autograd
   - This future is still in development and contains bugs in current form.
   
 ## TODO
-- [ ] Implementation of softmax() and relu() activations.
+- [ ] Implementation of softmax() activation
+- [X] Implementation of relu() activations.
 - [X] Autograd for `log` and `ln` operations
-- [ ] Cross Entropy Loss
+- [X] Cross Entropy Loss
 
 ## Getting Started
 ### Prerequisites
